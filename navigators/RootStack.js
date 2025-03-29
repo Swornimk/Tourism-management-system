@@ -1,8 +1,6 @@
 import React from 'react';
-
-//colors
 import { Colors } from './../components/styles';
-const { darkLight, brand, primary, tertiary, secondary } = Colors;
+const { tertiary } = Colors;
 
 // React Navigation
 import { NavigationContainer } from '@react-navigation/native';
@@ -11,13 +9,14 @@ import { createStackNavigator } from '@react-navigation/stack';
 // screens
 import Login from './../screens/Login';
 import Signup from './../screens/Signup';
-import Welcome from './../screens/Welcome';
+import Welcome from './../screens/profile';
+import Home from './../screens/Home';
 
 const Stack = createStackNavigator();
 
 const RootStack = () => {
   return (
-    <NavigationContainer style={{ backgroundColor: 'red' }}>
+    <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
@@ -35,13 +34,12 @@ const RootStack = () => {
       >
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Signup" component={Signup} />
-        <Stack.Screen
-          options={{
-            headerTintColor: primary,
-          }}
-          name="Welcome"
+        <Stack.Screen 
+          name="Welcome" 
           component={Welcome}
+          options={{ headerShown: false }}
         />
+        <Stack.Screen name = "Home" component = {Home}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
