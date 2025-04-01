@@ -188,14 +188,28 @@ const Home = ({ navigation }) => {
   );
 };
 
-// Enhanced Profile Screen Component
+// Updated Profile Screen Component with Add Trip functionality
 const Profile = ({ navigation }) => {
   const [editMode, setEditMode] = useState(false);
+  const [tripFormVisible, setTripFormVisible] = useState(false);
+  const [tripData, setTripData] = useState({
+    title: '',
+    location: '',
+    description: '',
+    price: '',
+    startDate: '',
+    endDate: ''
+  });
+
   const [userData, setUserData] = useState({
     name: 'Swornim KC',
     email: 'swornimkc@gmail.com',
     phone: '+977 9841234567',
-    bio: 'Travel enthusiast and adventure seeker'
+    bio: 'Travel enthusiast and adventure seeker',
+    hostedTrips: [
+      { id: '1', title: 'Bali Adventure', location: 'Bali, Indonesia', date: '15-20 June 2023' },
+      { id: '2', title: 'Himalayan Trek', location: 'Nepal', date: '1-10 October 2023' }
+    ]
   });
 
   const handleSave = () => {
@@ -203,15 +217,31 @@ const Profile = ({ navigation }) => {
     Alert.alert('Success', 'Profile updated successfully!');
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Log Out', onPress: () => navigation.navigate('Login') }
-      ]
-    );
+  const handleTripSubmit = () => {
+    // In a real app, you would save this to your backend
+    const newTrip = {
+      id: Date.now().toString(),
+      title: tripData.title,
+      location: tripData.location,
+      date: `${tripData.startDate} to ${tripData.endDate}`
+    };
+    
+    setUserData({
+      ...userData,
+      hostedTrips: [...userData.hostedTrips, newTrip]
+    });
+    
+    setTripFormVisible(false);
+    setTripData({
+      title: '',
+      location: '',
+      description: '',
+      price: '',
+      startDate: '',
+      endDate: ''
+    });
+    
+    Alert.alert('Success', 'Trip created successfully!');
   };
 
   return (
@@ -311,9 +341,8 @@ const Profile = ({ navigation }) => {
             </>
           )}
         </View>
-
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
+{/* Action Buttons */}
+<View style={styles.buttonContainer}>
           {editMode ? (
             <>
               <TouchableOpacity 
@@ -331,51 +360,192 @@ const Profile = ({ navigation }) => {
               </TouchableOpacity>
             </>
           ) : (
-            <>
-              <TouchableOpacity 
-                style={[styles.button, styles.editButton]}
-                onPress={() => setEditMode(true)}
-              >
-                <Text style={styles.buttonText}>Edit Profile</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.button, styles.logoutButton]}
-                onPress={handleLogout}
-              >
-                <Text style={styles.buttonText}>Log Out</Text>
-              </TouchableOpacity>
-            </>
+            <TouchableOpacity 
+              style={[styles.button, styles.editButton]}
+              onPress={() => setEditMode(true)}
+            >
+              <Text style={styles.buttonText}>Edit Profile</Text>
+            </TouchableOpacity>
           )}
         </View>
+        {/* Hosted Trips Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>My Hosted Trips</Text>
+            <TouchableOpacity onPress={() => setTripFormVisible(true)}>
+              <Text style={styles.addTripText}>+ Add Trip</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {userData.hostedTrips.length > 0 ? (
+            <FlatList
+              data={userData.hostedTrips}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <View style={styles.tripCard}>
+                  <View style={styles.tripInfo}>
+                    <Text style={styles.tripTitle}>{item.title}</Text>
+                    <View style={styles.tripMeta}>
+                      <Icon name="location-on" size={14} color="#888" />
+                      <Text style={styles.tripLocation}>{item.location}</Text>
+                    </View>
+                    <View style={styles.tripMeta}>
+                      <Icon name="calendar-today" size={14} color="#888" />
+                      <Text style={styles.tripDate}>{item.date}</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={styles.tripActionButton}>
+                    <Text style={styles.tripActionText}>View Details</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+          ) : (
+            <Text style={styles.noTripsText}>You haven't hosted any trips yet</Text>
+          )}
+        </View>
+
+        {/* Add Trip Form Modal */}
+        {tripFormVisible && (
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Host a New Trip</Text>
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Trip Title"
+                value={tripData.title}
+                onChangeText={(text) => setTripData({...tripData, title: text})}
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Location"
+                value={tripData.location}
+                onChangeText={(text) => setTripData({...tripData, location: text})}
+              />
+              
+              <TextInput
+                style={[styles.input, { height: 80 }]}
+                placeholder="Description"
+                value={tripData.description}
+                onChangeText={(text) => setTripData({...tripData, description: text})}
+                multiline
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Price per person"
+                value={tripData.price}
+                onChangeText={(text) => setTripData({...tripData, price: text})}
+                keyboardType="numeric"
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Start Date (DD/MM/YYYY)"
+                value={tripData.startDate}
+                onChangeText={(text) => setTripData({...tripData, startDate: text})}
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="End Date (DD/MM/YYYY)"
+                value={tripData.endDate}
+                onChangeText={(text) => setTripData({...tripData, endDate: text})}
+              />
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setTripFormVisible(false)}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.submitButton]}
+                  onPress={handleTripSubmit}
+                >
+                  <Text style={styles.modalButtonText}>Create Trip</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
+        
       </View>
     </ScrollView>
   );
 };
 
 // Location Screen Component
-const Location = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <StatusBar style="light" />
-    <InnerContainer>
-      <WelcomeImage resizeMode="cover" source={require('./../assets/img/Img2.jpg')} />
+const Location = ({ navigation }) => {
+  // Sample data - replace with your actual data source
+  const locationData = [
+    { 
+      id: '1', 
+      title: 'Bali Resort', 
+      location: 'Bali, Indonesia', 
+      price: 120,
+      rating: 4.8,
+      image: require('./../assets/img/Img.jpg') 
+    },
+    { 
+      id: '2', 
+      title: 'Mountain Lodge', 
+      location: 'Himalayas, Nepal', 
+      price: 90,
+      rating: 4.6,
+      image: require('./../assets/img/Img2.jpg') 
+    },
+    // Add more locations as needed
+  ];
 
-      <WelcomeContainer>
-        <PageTitle welcome={true}>Welcome! Traveller</PageTitle>
-        <SubTitle welcome={true}>Swornim KC</SubTitle>
-        <SubTitle welcome={true}>swornimkc@gmail.com</SubTitle>
+  const renderLocationCard = ({ item }) => (
+    <TouchableOpacity style={styles.locationCard}>
+      <Image source={item.image} style={styles.locationImage} />
+      <View style={styles.locationDetails}>
+        <Text style={styles.locationTitle}>{item.title}</Text>
+        <View style={styles.locationInfo}>
+          <Icon name="location-on" size={14} color="#888" />
+          <Text style={styles.locationText}>{item.location}</Text>
+        </View>
+        <View style={styles.locationFooter}>
+          <Text style={styles.locationPrice}>${item.price}/night</Text>
+          <View style={styles.locationRating}>
+            <Icon name="star" size={14} color="#FFD700" />
+            <Text style={styles.ratingText}>{item.rating}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
-        <StyledFormArea>
-          <Avatar resizeMode="cover" source={require('./../assets/img/logo.jpg')} />
-          <Line />
-          <StyledButton onPress={() => {navigation.navigate('Login')}}>
-            <ButtonText>Logout</ButtonText>
-          </StyledButton>
-        </StyledFormArea>
-      </WelcomeContainer>
-    </InnerContainer>
-  </View>
-);
+  return (
+    <View style={{ flex: 1 }}>
+      <StatusBar style="light" />
+      <InnerContainer>
+        {/* Keep your welcome section */}
+        <WelcomeContainer>
+          <PageTitle welcome={true}>Explore Locations</PageTitle>
+          <SubTitle welcome={true}>Find your next adventure</SubTitle>
+        </WelcomeContainer>
+
+        {/* 2-column grid of location cards */}
+        <FlatList
+          data={locationData}
+          renderItem={renderLocationCard}
+          keyExtractor={item => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.locationGrid}
+          columnWrapperStyle={styles.columnWrapper}
+        />
+      </InnerContainer>
+    </View>
+  );
+};
 
 // Settings Screen Component
 const Setting = ({ navigation }) => {
@@ -716,6 +886,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 5,
   },
+  locationGrid: {
+    padding: 10,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  locationCard: {
+    width: '48%',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    marginBottom: 15,
+  },
+  locationImage: {
+    width: '100%',
+    height: 120,
+    resizeMode: 'cover',
+  },
+  locationDetails: {
+    padding: 12,
+  },
+  locationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    marginBottom: 5,
+  },
+  locationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  locationText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginLeft: 5,
+  },
+  locationFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  locationPrice: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  locationRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    fontSize: 12,
+    color: Colors.textPrimary,
+    marginLeft: 3,
+  },
   ratingText: {
     fontSize: 14,
     color: '#333',
@@ -806,6 +1038,106 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 30,
+  },
+  tripCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    elevation: 2,
+  },
+  tripInfo: {
+    marginBottom: 10,
+  },
+  tripTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  tripMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  tripLocation: {
+    fontSize: 14,
+    color: '#888',
+    marginLeft: 5,
+  },
+  tripDate: {
+    fontSize: 14,
+    color: '#888',
+    marginLeft: 5,
+  },
+  tripActionButton: {
+    backgroundColor: '#f0f0f0',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  tripActionText: {
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  addTripText: {
+    color: '#3498db',
+    fontWeight: 'bold',
+  },
+  noTripsText: {
+    textAlign: 'center',
+    color: '#888',
+    marginVertical: 20,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 15,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  submitButton: {
+    backgroundColor: '#2ecc71',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
   },
   sectionTitle: {
     fontSize: 18,
