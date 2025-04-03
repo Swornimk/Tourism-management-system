@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import axios from 'axios'; // Import axios for HTTP requests
@@ -126,20 +127,22 @@ const Signup = ({ navigation }) => {
         password: values.password
       };
 
-      console.log('Sending request to:', `${API_URL}/signup`);
+      console.log('Sending request to:', `${API_URL}/register`);
       console.log('Data:', JSON.stringify(userData));
 
       // Make API request
-      const response = await axios.post(`${API_URL}/signup`, userData);
+      const response = await axios.post(`${API_URL}/register`, userData);
       
       // Check response
       if (response.data.error) {
+        console.log('Registration failed:', response.data.error);
         return {
           success: false,
           message: response.data.error
         };
       }
       
+      console.log('Registration successful:', response.data);
       return {
         success: true,
         message: response.data.message || 'Registration successful!'
@@ -147,10 +150,43 @@ const Signup = ({ navigation }) => {
       
     } catch (error) {
       console.error('Signup error:', error);
-      return {
-        success: false,
-        message: error.response?.data?.error || 'Network error. Please try again.'
-      };
+      
+      // Provide more detailed error messages
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        console.log('Error response status:', error.response.status);
+        console.log('Error response data:', error.response.data);
+        
+        if (error.response.status === 404) {
+          return {
+            success: false,
+            message: 'Registration endpoint not found. Please check server configuration.'
+          };
+        } else if (error.response.status === 409) {
+          return {
+            success: false,
+            message: 'Email already exists. Please use a different email address.'
+          };
+        } else {
+          return {
+            success: false,
+            message: error.response.data?.error || `Server error (${error.response.status}). Please try again.`
+          };
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.log('No response received:', error.request);
+        return {
+          success: false,
+          message: 'No response from server. Please check your internet connection.'
+        };
+      } else {
+        // Something happened in setting up the request
+        return {
+          success: false,
+          message: 'Error sending request. Please try again.'
+        };
+      }
     }
   };
 
@@ -160,6 +196,8 @@ const Signup = ({ navigation }) => {
     setMessageType('');
     setIsSubmitting(true);
     
+    console.log('Starting signup process...');
+    
     // Add Date of Birth to values
     values = { ...values, dateOfBirth: dob };
     
@@ -167,6 +205,7 @@ const Signup = ({ navigation }) => {
     const errors = validateForm(values);
     
     if (Object.keys(errors).length > 0) {
+      console.log('Form validation failed:', errors);
       setErrors(errors);
       
       // Customize message based on missing fields
@@ -183,18 +222,23 @@ const Signup = ({ navigation }) => {
       return;
     }
     
+    console.log('Form validation passed, submitting to backend...');
+    
     // Form is valid, proceed with submission to backend
     const result = await submitToBackend(values);
     
     if (result.success) {
+      console.log('Signup successful, preparing to navigate to Login...');
       setMessage(result.message);
       setMessageType('SUCCESS');
       
       // Navigate to Welcome screen after successful registration
       setTimeout(() => {
+        console.log('Navigating to Login screen...');
         navigation.navigate("Login");  // Navigate to Login instead
       }, 1500);
     } else {
+      console.log('Signup failed:', result.message);
       setMessage(result.message);
       setMessageType('ERROR');
     }

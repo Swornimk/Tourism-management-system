@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StatusBar,
   StyleSheet,
@@ -12,10 +12,11 @@ import {
   ScrollView,
   Alert,
   Linking,
-  TextInput
+  TextInput,
+  ActivityIndicator,
+  Platform
 } from "react-native";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Destination } from "../config/data";
 import {
@@ -31,6 +32,11 @@ import {
   Line,
   Colors,
 } from '../components/styles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import * as ImagePicker from 'expo-image-picker';
+
+const API_URL = 'http://10.0.2.2:8000';
 
 // Home Screen Component
 const Home = ({ navigation }) => {
@@ -191,28 +197,330 @@ const Home = ({ navigation }) => {
 // Enhanced Profile Screen Component
 const Profile = ({ navigation }) => {
   const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [authToken, setAuthToken] = useState(null);
+  const [profileImageKey, setProfileImageKey] = useState(Date.now());
+  const [tripFormVisible, setTripFormVisible] = useState(false);
+  const [tripData, setTripData] = useState({
+    title: '',
+    location: '',
+    description: '',
+    price: '',
+    startDate: '',
+    endDate: ''
+  });
+  const [userTrips, setUserTrips] = useState([]);
   const [userData, setUserData] = useState({
-    name: 'Swornim KC',
-    email: 'swornimkc@gmail.com',
-    phone: '+977 9841234567',
-    bio: 'Travel enthusiast and adventure seeker'
+    userName: '',
+    email: '',
+    bio: '',
+    profilePicture: null,
+    profileImageData: null
   });
 
-  const handleSave = () => {
-    setEditMode(false);
-    Alert.alert('Success', 'Profile updated successfully!');
+  // Request camera permissions and get token
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem('accessToken');
+        if (!token) {
+          navigation.navigate('Login');
+          return;
+        }
+        setAuthToken(token);
+
+        if (Platform.OS !== 'web') {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Sorry, we need camera roll permissions to update your profile picture!');
+          }
+        }
+
+        await fetchUserData();
+        await fetchUserTrips();
+      } catch (error) {
+        console.error('Error in initialization:', error);
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // Fetch user trips
+  const fetchUserTrips = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) {
+        navigation.navigate('Login');
+        return;
+      }
+
+      const response = await axios.get(`${API_URL}/trips/user`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      setUserTrips(response.data);
+    } catch (error) {
+      console.error('Error fetching user trips:', error);
+      Alert.alert('Error', 'Failed to load trips');
+    }
   };
 
-  const handleLogout = () => {
+  // Handle trip submission
+  const handleTripSubmit = async () => {
+    try {
+      setUpdating(true);
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) {
+        navigation.navigate('Login');
+        return;
+      }
+
+      const response = await axios.post(`${API_URL}/trips`, tripData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Trip creation response:', response.data);
+
+      // Check if the trip was created successfully
+      if (response.data.message === "Trip created successfully") {
+        // Create a new trip object with the response data
+        const newTrip = {
+          _id: response.data.tripId,
+          ...tripData,
+          status: 'pending',
+          userId: token // Add any other default fields needed
+        };
+        
+        // Add the new trip to the userTrips state
+        setUserTrips(prevTrips => [...prevTrips, newTrip]);
+        
+        // Close the trip form and reset form data
+        setTripFormVisible(false);
+        setTripData({
+          title: '',
+          location: '',
+          description: '',
+          price: '',
+          startDate: '',
+          endDate: ''
+        });
+        
+        Alert.alert('Success', 'Trip created successfully! Waiting for admin approval.');
+      } else {
+        throw new Error('Failed to create trip');
+      }
+    } catch (error) {
+      console.error('Error creating trip:', error);
+      Alert.alert('Error', error.response?.data?.error || 'Failed to create trip');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Fetch user data from API
+  const fetchUserData = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) {
+        navigation.navigate('Login');
+        return;
+      }
+
+      console.log('Fetching user data...');
+      const response = await axios.get(`${API_URL}/getuser`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('User data response:', response.data);
+
+      if (response.data && response.data[0]) {
+        const user = response.data[0];
+        console.log('Profile image data exists:', !!user.profileImageData);
+        
+        setUserData({
+          userName: user.userName || '',
+          email: user.email || '',
+          bio: user.bio || 'No bio added yet.',
+          profilePicture: user.profilePicture,
+          profileImageData: user.profileImageData
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      if (error.response?.status === 401) {
+        await AsyncStorage.removeItem('accessToken');
+        navigation.navigate('Login');
+      } else {
+        Alert.alert('Error', 'Failed to load user data');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle profile update
+  const handleProfileUpdate = async (newName, newEmail, newBio, imageUri) => {
+    try {
+      setUpdating(true);
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) {
+        navigation.navigate('Login');
+        return;
+      }
+
+      const formData = new FormData();
+
+      // Add text fields if provided
+      if (newName) formData.append('userName', newName);
+      if (newEmail) formData.append('email', newEmail);
+      if (newBio) formData.append('bio', newBio);
+
+      // Add image if provided
+      if (imageUri) {
+        const filename = imageUri.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+        formData.append('profilePicture', {
+          uri: imageUri,
+          name: filename,
+          type,
+        });
+      }
+
+      const response = await axios.put(`${API_URL}/profile/update`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        }
+      });
+
+      if (response.data.message) {
+        // Immediately fetch updated user data after successful update
+        const userResponse = await axios.get(`${API_URL}/getuser`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (userResponse.data && userResponse.data[0]) {
+          const updatedUser = userResponse.data[0];
+          setUserData({
+            userName: updatedUser.userName || '',
+            email: updatedUser.email || '',
+            bio: updatedUser.bio || 'No bio added yet.',
+            profilePicture: updatedUser.profilePicture,
+            profileImageData: updatedUser.profileImageData
+          });
+
+          if (imageUri) {
+            Alert.alert('Success', 'Profile picture updated successfully!');
+          } else {
+    Alert.alert('Success', 'Profile updated successfully!');
+            setEditMode(false);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      if (error.response?.status === 401) {
+        await AsyncStorage.removeItem('accessToken');
+        navigation.navigate('Login');
+      } else {
+        Alert.alert('Error', 'Failed to update profile. Please try again.');
+      }
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Handle image loading error
+  const handleImageError = () => {
+    console.error('Error loading profile image');
+    setUserData(prev => ({
+      ...prev,
+      profileImageData: null
+    }));
+  };
+
+  // Handle image selection
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled) {
+        // Handle the selected image
+        const selectedAsset = result.assets[0];
+        await handleProfileUpdate(null, null, null, selectedAsset.uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  // Handle save button press
+  const handleSave = async () => {
+    await handleProfileUpdate(
+      userData.userName,
+      userData.email,
+      userData.bio
+    );
+  };
+
+  const handleLogout = async () => {
     Alert.alert(
       'Log Out',
       'Are you sure you want to log out?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Log Out', onPress: () => navigation.navigate('Login') }
+        { 
+          text: 'Log Out', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear all stored tokens and user data
+              await AsyncStorage.multiRemove([
+                'accessToken',
+                'refreshToken',
+                'isAdmin'
+              ]);
+              
+              // Navigate to Login screen with reset to prevent going back
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Alert.alert('Error', 'Failed to log out. Please try again.');
+            }
+          }
+        }
       ]
     );
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3498db" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.profileContainer}>
@@ -229,20 +537,36 @@ const Profile = ({ navigation }) => {
         
         <View style={styles.avatarContainer}>
           <Image 
-            source={require('./../assets/img/class.jpg')} 
+            key={profileImageKey}
+            source={
+              userData.profileImageData 
+                ? { uri: `data:image/jpeg;base64,${userData.profileImageData}` }
+                : require('./../assets/img/default-avatar.jpg')
+            }
             style={styles.avatar}
           />
-          <TouchableOpacity style={styles.editPhotoButton}>
+          {editMode && (
+            <TouchableOpacity 
+              style={styles.editPhotoButton}
+              onPress={pickImage}
+              disabled={updating}
+            >
+              {updating ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
             <Icon name="edit" size={18} color="#fff" />
+              )}
           </TouchableOpacity>
+          )}
         </View>
         
-        <Text style={styles.profileName}>{userData.name}</Text>
+        <Text style={styles.profileName}>{userData.userName}</Text>
         <Text style={styles.profileEmail}>{userData.email}</Text>
       </View>
 
       {/* Profile Content */}
       <View style={styles.profileContent}>
+        {/* Personal Information Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
           
@@ -252,8 +576,9 @@ const Profile = ({ navigation }) => {
                 <Text style={styles.label}>Full Name</Text>
                 <TextInput
                   style={styles.input}
-                  value={userData.name}
-                  onChangeText={(text) => setUserData({...userData, name: text})}
+                  value={userData.userName}
+                  onChangeText={(text) => setUserData({...userData, userName: text})}
+                  editable={!updating}
                 />
               </View>
               
@@ -264,16 +589,7 @@ const Profile = ({ navigation }) => {
                   value={userData.email}
                   onChangeText={(text) => setUserData({...userData, email: text})}
                   keyboardType="email-address"
-                />
-              </View>
-              
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Phone</Text>
-                <TextInput
-                  style={styles.input}
-                  value={userData.phone}
-                  onChangeText={(text) => setUserData({...userData, phone: text})}
-                  keyboardType="phone-pad"
+                  editable={!updating}
                 />
               </View>
               
@@ -284,6 +600,7 @@ const Profile = ({ navigation }) => {
                   value={userData.bio}
                   onChangeText={(text) => setUserData({...userData, bio: text})}
                   multiline
+                  editable={!updating}
                 />
               </View>
             </>
@@ -291,17 +608,12 @@ const Profile = ({ navigation }) => {
             <>
               <View style={styles.infoItem}>
                 <Icon name="person" size={20} color="#555" />
-                <Text style={styles.infoText}>{userData.name}</Text>
+                <Text style={styles.infoText}>{userData.userName}</Text>
               </View>
               
               <View style={styles.infoItem}>
                 <Icon name="email" size={20} color="#555" />
                 <Text style={styles.infoText}>{userData.email}</Text>
-              </View>
-              
-              <View style={styles.infoItem}>
-                <Icon name="phone" size={20} color="#555" />
-                <Text style={styles.infoText}>{userData.phone}</Text>
               </View>
               
               <View style={styles.infoItem}>
@@ -312,6 +624,145 @@ const Profile = ({ navigation }) => {
           )}
         </View>
 
+        {/* Hosted Trips Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>My Hosted Trips</Text>
+            <TouchableOpacity 
+              style={styles.addTripButton}
+              onPress={() => setTripFormVisible(true)}
+            >
+              <Icon name="add" size={24} color="#3498db" />
+            </TouchableOpacity>
+          </View>
+
+          {userTrips.length > 0 ? (
+            userTrips.map((trip) => (
+              <View key={trip._id} style={styles.tripCard}>
+                <View style={styles.tripHeader}>
+                  <Text style={styles.tripTitle}>{trip.title}</Text>
+                  <View style={[
+                    styles.statusBadge,
+                    { backgroundColor: trip.status === 'approved' ? '#2ecc71' : trip.status === 'rejected' ? '#e74c3c' : '#f1c40f' }
+                  ]}>
+                    <Text style={styles.statusText}>{trip.status}</Text>
+                  </View>
+                </View>
+                <View style={styles.tripDetails}>
+                  <View style={styles.tripInfo}>
+                    <Icon name="location-on" size={16} color="#666" />
+                    <Text style={styles.tripInfoText}>{trip.location}</Text>
+                  </View>
+                  <View style={styles.tripInfo}>
+                    <Icon name="date-range" size={16} color="#666" />
+                    <Text style={styles.tripInfoText}>
+                      {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <View style={styles.tripInfo}>
+                    <Icon name="attach-money" size={16} color="#666" />
+                    <Text style={styles.tripInfoText}>Rs. {trip.price}</Text>
+                  </View>
+                </View>
+                <Text style={styles.tripDescription}>{trip.description}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.noTripsText}>No trips hosted yet</Text>
+          )}
+        </View>
+
+        {/* Trip Form Modal */}
+        {tripFormVisible && (
+          <View style={styles.tripFormContainer}>
+            <View style={styles.tripFormHeader}>
+              <Text style={styles.tripFormTitle}>Create New Trip</Text>
+              <TouchableOpacity 
+                onPress={() => setTripFormVisible(false)}
+                style={styles.closeButton}
+              >
+                <Icon name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Title</Text>
+              <TextInput
+                style={styles.input}
+                value={tripData.title}
+                onChangeText={(text) => setTripData({...tripData, title: text})}
+                placeholder="Enter trip title"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Location</Text>
+              <TextInput
+                style={styles.input}
+                value={tripData.location}
+                onChangeText={(text) => setTripData({...tripData, location: text})}
+                placeholder="Enter location"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, { height: 100 }]}
+                value={tripData.description}
+                onChangeText={(text) => setTripData({...tripData, description: text})}
+                placeholder="Enter trip description"
+                multiline
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Price (Rs.)</Text>
+              <TextInput
+                style={styles.input}
+                value={tripData.price}
+                onChangeText={(text) => setTripData({...tripData, price: text})}
+                placeholder="Enter price"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.dateContainer}>
+              <View style={styles.dateInput}>
+                <Text style={styles.label}>Start Date</Text>
+                <TextInput
+                  style={styles.input}
+                  value={tripData.startDate}
+                  onChangeText={(text) => setTripData({...tripData, startDate: text})}
+                  placeholder="YYYY-MM-DD"
+                />
+              </View>
+
+              <View style={styles.dateInput}>
+                <Text style={styles.label}>End Date</Text>
+                <TextInput
+                  style={styles.input}
+                  value={tripData.endDate}
+                  onChangeText={(text) => setTripData({...tripData, endDate: text})}
+                  placeholder="YYYY-MM-DD"
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.submitButton, updating && styles.disabledButton]}
+              onPress={handleTripSubmit}
+              disabled={updating}
+            >
+              {updating ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.submitButtonText}>Create Trip</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           {editMode ? (
@@ -319,13 +770,19 @@ const Profile = ({ navigation }) => {
               <TouchableOpacity 
                 style={[styles.button, styles.saveButton]}
                 onPress={handleSave}
+                disabled={updating}
               >
+                {updating ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
                 <Text style={styles.buttonText}>Save Changes</Text>
+                )}
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={[styles.button, styles.cancelButton]}
                 onPress={() => setEditMode(false)}
+                disabled={updating}
               >
                 <Text style={styles.buttonText}>Cancel</Text>
               </TouchableOpacity>
@@ -383,13 +840,35 @@ const Setting = ({ navigation }) => {
   const [notifications, setNotifications] = useState(true);
   const [biometricAuth, setBiometricAuth] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert(
       'Log Out',
       'Are you sure you want to log out?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Log Out', onPress: () => navigation.navigate('Login') }
+        { 
+          text: 'Log Out', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear all stored tokens and user data
+              await AsyncStorage.multiRemove([
+                'accessToken',
+                'refreshToken',
+                'isAdmin'
+              ]);
+              
+              // Navigate to Login screen with reset to prevent going back
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Alert.alert('Error', 'Failed to log out. Please try again.');
+            }
+          }
+        }
       ]
     );
   };
@@ -525,9 +1004,28 @@ const Setting = ({ navigation }) => {
 const Tab = createBottomTabNavigator();
 
 // Main App Component with Navigation
-const App = () => {
+const HomeNavigator = ({ navigation }) => {
+  useEffect(() => {
+    // Check if the user is an admin and redirect if needed
+    const checkAdminStatus = async () => {
+      try {
+        const isAdmin = await AsyncStorage.getItem('isAdmin');
+        if (isAdmin === 'true') {
+          // If user is admin, redirect to admin dashboard
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'AdminDashboard' }],
+          });
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [navigation]);
+
   return (
-    <NavigationContainer>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIcon: ({ focused, color, size }) => {
@@ -554,9 +1052,8 @@ const App = () => {
         <Tab.Screen name="Location" component={Location} />
         <Tab.Screen name="Setting" component={Setting} />
       </Tab.Navigator>
-    </NavigationContainer>
   );
-}
+};
 
 const styles = StyleSheet.create({
   // Home Screen Styles
@@ -789,6 +1286,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#fff',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   profileName: {
     fontSize: 22,
@@ -923,6 +1425,116 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     fontSize: 12,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff'
+  },
+
+  // Trip related styles
+  addTripButton: {
+    padding: 5,
+  },
+  tripCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  tripHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  tripTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  statusText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
+  },
+  tripDetails: {
+    marginBottom: 10,
+  },
+  tripInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  tripInfoText: {
+    marginLeft: 8,
+    color: '#666',
+    fontSize: 14,
+  },
+  tripDescription: {
+    color: '#666',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  noTripsText: {
+    textAlign: 'center',
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 20,
+  },
+  tripFormContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    marginBottom: 20,
+  },
+  tripFormHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  tripFormTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dateInput: {
+    width: '48%',
+  },
+  submitButton: {
+    backgroundColor: '#3498db',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
-export default App;
+export default HomeNavigator;
