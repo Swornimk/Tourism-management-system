@@ -45,6 +45,7 @@ router.get("/user/:id/picture", userController.getUserProfilePicture);
 router.post("/trips", tripController.createTrip);
 router.get("/trips/user", tripController.getUserTrips);
 router.get("/trips/all", tripController.getAllTrips);
-router.put("/trips/:id/status", tripController.updateTripStatus);
+router.get("/trips/image/:imageName", tripController.getTripImage);
+router.patch("/trips/:id/status", tripController.updateTripStatus);
 
 module.exports = router;

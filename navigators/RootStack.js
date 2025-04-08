@@ -12,6 +12,7 @@ import Login from './../screens/Login';
 import Signup from './../screens/Signup';
 import HomeNavigator from './../screens/Home';
 import AdminDashboard from './../screens/Adminpanel';
+import AdminTripManagement from './../screens/AdminTripManagement';
 import axios from 'axios';
 
 const API_URL = 'http://10.0.2.2:8000';
@@ -106,6 +107,11 @@ const RootStack = () => {
       <Stack.Screen 
         name="AdminDashboard" 
         component={AdminDashboard}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="AdminTripManagement" 
+        component={AdminTripManagement}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

@@ -478,6 +478,10 @@ const AdminDashboard = ({ navigation }) => {
     );
   };
 
+  const navigateToTripManagement = () => {
+    navigation.navigate('AdminTripManagement');
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -505,7 +509,7 @@ const AdminDashboard = ({ navigation }) => {
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
-        {['Users', 'Listings', 'Analytics'].map((tab) => (
+        {['Users', 'Analytics'].map((tab) => (
         <TouchableOpacity 
             key={tab}
             style={[styles.tabButton, activeTab === tab && styles.activeTab]}
@@ -539,34 +543,20 @@ const AdminDashboard = ({ navigation }) => {
                 <Text style={styles.statLabel}>Pending Approvals</Text>
               </View>
             </View>
-          </View>
-        )}
-
-        {activeTab === 'Listings' && (
-          <View>
-            <View style={styles.listHeader}>
-              <Text style={styles.sectionTitle}>Trip Listings</Text>
-              <View style={styles.searchContainer}>
-                <Icon name="search" size={20} color="#888" />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search listings..."
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                />
-              </View>
-            </View>
-            
-            {trips
-              .filter(trip => 
-                trip.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                trip.location.toLowerCase().includes(searchQuery.toLowerCase())
-              )
-              .map(trip => (
-                <View key={trip._id}>
-                  {renderTrip(trip)}
+            <View style={styles.dashboardCardRow}>
+              <TouchableOpacity style={styles.dashboardCard} onPress={navigateToTripManagement}>
+                <View style={[styles.cardIcon, { backgroundColor: '#9b59b6' }]}>
+                  <Icon name="card-travel" size={24} color="#fff" />
                 </View>
-              ))}
+                <Text style={styles.cardTitle}>Trip Management</Text>
+                <Text style={styles.cardValue}>
+                  {stats.pendingApprovals} pending
+                </Text>
+                <Text style={styles.cardDescription}>
+                  Manage user-submitted trips
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -852,6 +842,45 @@ const styles = StyleSheet.create({
   },
   deactivateButton: {
     backgroundColor: '#F44336',
+  },
+  dashboardCardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  dashboardCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  cardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  cardValue: {
+    fontSize: 14,
+    color: '#777',
+  },
+  cardDescription: {
+    fontSize: 12,
+    color: '#888',
   },
 });
 

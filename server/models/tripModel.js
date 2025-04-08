@@ -10,7 +10,9 @@ class Trip {
     endDate,
     userId,
     userName,
-    userProfilePicture
+    userProfilePicture,
+    tripImageUrl,
+    tripImagePath
   ) {
     this._id = new ObjectId();
     this.title = title;
@@ -22,6 +24,8 @@ class Trip {
     this.userId = userId;
     this.userName = userName;
     this.userProfilePicture = userProfilePicture || null;
+    this.tripImageUrl = tripImageUrl || null;
+    this.tripImagePath = tripImagePath || null;
     this.status = 'pending'; // pending, approved, rejected
     this.createdAt = new Date();
     this.updatedAt = new Date();

@@ -70,21 +70,53 @@ function IsAuthenticated(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ message: "You are not authorized" });
+      // When called as middleware with next
+      if (next) {
+        return res.status(401).json({ message: "You are not authorized" });
+      }
+      // When called directly without next
+      return false;
     }
 
     const tokenString = authHeader.split("Bearer ")[1];
-    console.log("Received token:", tokenString); // Log the token for debugging
-
-    const token = jwt.verify(tokenString, secretKey);
-
-    if (!token) {
-      return res.status(401).json({ message: "Invalid token" });
+    
+    try {
+      const token = jwt.verify(tokenString, secretKey);
+      if (!token) {
+        // When called as middleware with next
+        if (next) {
+          return res.status(401).json({ message: "Invalid token" });
+        }
+        // When called directly without next
+        return false;
+      }
+      
+      // When called as middleware with next
+      if (next) {
+        next();
+      }
+      
+      // When called directly without next
+      return true;
+    } catch (verifyError) {
+      console.error("Token verification error:", verifyError);
+      
+      // When called as middleware with next
+      if (next) {
+        return res.status(401).json({ message: "Invalid token" });
+      }
+      // When called directly without next
+      return false;
     }
-    next();
   } catch (error) {
     console.error("Error authenticating:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    
+    // When called as middleware with next
+    if (next) {
+      return res.status(500).json({ message: "Internal server error" });
+    }
+    // When called directly without next
+    return false;
   } 
 }
 
