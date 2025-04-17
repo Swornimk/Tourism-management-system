@@ -25,6 +25,11 @@ const AdminTripManagement = ({ navigation, route }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'approved', 'rejected'
 
+  // Log when this component is mounted (for debugging)
+  useEffect(() => {
+    console.log('AdminTripManagement mounted');
+  }, []);
+
   useEffect(() => {
     checkAuthAndFetchData();
   }, []);
@@ -37,6 +42,18 @@ const AdminTripManagement = ({ navigation, route }) => {
       navigation.setParams({ refresh: undefined });
     }
   }, [route.params?.refresh]);
+
+  // Add a listener to refresh data when the screen is focused
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Always refresh data when screen comes into focus
+      console.log('AdminTripManagement focused, refreshing data...');
+      fetchTrips(accessToken);
+    });
+
+    // Return the cleanup function to unsubscribe from the event
+    return unsubscribe;
+  }, [navigation, accessToken]);
 
   const checkAuthAndFetchData = async () => {
     try {
@@ -75,14 +92,12 @@ const AdminTripManagement = ({ navigation, route }) => {
   const fetchTrips = async (token) => {
     setLoading(true);
     try {
+      // Skip if no token is provided and none is available
       const authToken = token || await AsyncStorage.getItem('accessToken');
       
       if (!authToken) {
+        console.log('No token available, skipping fetch');
         setLoading(false);
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Login' }],
-        });
         return;
       }
 
@@ -208,7 +223,32 @@ const AdminTripManagement = ({ navigation, route }) => {
   };
 
   const handleViewTripDetails = (trip) => {
-    navigation.navigate('TripApproval', { trip });
+    console.log('Navigating to TripApproval with trip:', trip._id);
+    
+    // Check if navigation is available
+    if (!navigation) {
+      console.error('Navigation object is undefined');
+      Alert.alert('Error', 'Navigation not available. Please try again.');
+      return;
+    }
+    
+    // Make sure trip data is valid
+    if (!trip || !trip._id) {
+      console.error('Invalid trip data:', trip);
+      Alert.alert('Error', 'Invalid trip data. Please try again.');
+      return;
+    }
+    
+    // Navigate to the TripApproval screen with trip data
+    try {
+      navigation.navigate('TripApproval', { 
+        trip: trip,
+        from: 'AdminTripManagement'
+      });
+    } catch (error) {
+      console.error('Navigation error:', error);
+      Alert.alert('Error', 'Failed to open trip details. Please try again.');
+    }
   };
 
   const renderStatusFilter = () => {
@@ -250,25 +290,20 @@ const AdminTripManagement = ({ navigation, route }) => {
 
   const renderTrip = ({ item: trip }) => {
     const getStatusColor = (status) => {
-      switch (status) {
-        case 'approved': return '#2ecc71';
-        case 'rejected': return '#e74c3c';
-        default: return '#f1c40f';
-      }
+      if (status === 'approved') return '#2ecc71';
+      if (status === 'rejected') return '#e74c3c';
+      return '#f1c40f'; // pending
     };
 
     const formatDate = (dateString) => {
-      const options = { year: 'numeric', month: 'short', day: 'numeric' };
-      return new Date(dateString).toLocaleDateString(undefined, options);
+      if (!dateString) return 'N/A';
+      return new Date(dateString).toLocaleDateString();
     };
 
     return (
       <View style={styles.tripCard}>
         <View style={styles.tripHeader}>
-          <View>
-            <Text style={styles.tripTitle}>{trip.title}</Text>
-            <Text style={styles.tripLocation}>{trip.location}</Text>
-          </View>
+          <Text style={styles.tripTitle}>{trip.title}</Text>
           <View style={[
             styles.statusBadge,
             { backgroundColor: getStatusColor(trip.status) }
@@ -276,20 +311,18 @@ const AdminTripManagement = ({ navigation, route }) => {
             <Text style={styles.statusText}>{trip.status}</Text>
           </View>
         </View>
-
+        
         {trip.tripImageUrl && (
-          <TouchableOpacity onPress={() => handleViewTripDetails(trip)}>
-            <Image
-              source={{ uri: trip.tripImageUrl }}
-              style={styles.tripImage}
-              resizeMode="cover"
-            />
-          </TouchableOpacity>
+          <Image 
+            source={{ uri: trip.tripImageUrl }} 
+            style={styles.tripImage}
+            resizeMode="cover"
+          />
         )}
-
+        
         <View style={styles.tripInfoRow}>
-          <Icon name="person" size={16} color="#666" />
-          <Text style={styles.tripInfoText}>Host: {trip.userName}</Text>
+          <Icon name="location-on" size={16} color="#666" />
+          <Text style={styles.tripInfoText}>{trip.location || 'No location specified'}</Text>
         </View>
         
         <View style={styles.tripInfoRow}>
@@ -301,32 +334,42 @@ const AdminTripManagement = ({ navigation, route }) => {
         
         <View style={styles.tripInfoRow}>
           <Icon name="attach-money" size={16} color="#666" />
-          <Text style={styles.tripInfoText}>Rs. {trip.price}</Text>
+          <Text style={styles.tripInfoText}>Rs. {trip.price || 'N/A'}</Text>
         </View>
-
-        <View style={styles.tripDescription}>
-          <Text numberOfLines={2} style={styles.tripDescriptionText}>
-            {trip.description}
-          </Text>
+        
+        <Text 
+          style={styles.tripDescription}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
+          {trip.description || 'No description provided'}
+        </Text>
+        
+        <View style={styles.tripActionContainer}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.viewButton]}
+            onPress={() => handleViewTripDetails(trip)}
+          >
+            <Text style={styles.actionButtonText}>View Details</Text>
+          </TouchableOpacity>
+          
+          {trip.status === 'pending' && (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.approveButton]}
+                onPress={() => handleUpdateTripStatus(trip._id, 'approved')}
+              >
+                <Text style={styles.actionButtonText}>Approve</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.rejectButton]}
+                onPress={() => handleUpdateTripStatus(trip._id, 'rejected')}
+              >
+                <Text style={styles.actionButtonText}>Reject</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-
-        {trip.status === 'pending' && (
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.rejectButton]}
-              onPress={() => handleUpdateTripStatus(trip._id, 'rejected')}
-            >
-              <Text style={styles.actionButtonText}>Reject</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.actionButton, styles.approveButton]}
-              onPress={() => handleUpdateTripStatus(trip._id, 'approved')}
-            >
-              <Text style={styles.actionButtonText}>Approve</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
     );
   };
@@ -494,36 +537,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   tripDescription: {
-    marginTop: 5,
-    marginBottom: 10,
-  },
-  tripDescriptionText: {
     color: '#666',
     fontSize: 14,
     lineHeight: 20,
+    marginBottom: 10,
+  },
+  tripActionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
   },
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
+    justifyContent: 'flex-end',
   },
   actionButton: {
-    flex: 1,
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginLeft: 10,
   },
-  rejectButton: {
-    backgroundColor: '#e74c3c',
-    marginRight: 5,
+  viewButton: {
+    backgroundColor: '#3498db',
   },
   approveButton: {
     backgroundColor: '#2ecc71',
-    marginLeft: 5,
+  },
+  rejectButton: {
+    backgroundColor: '#e74c3c',
   },
   actionButtonText: {
     color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
   },
   emptyContainer: {

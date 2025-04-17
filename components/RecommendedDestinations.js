@@ -99,7 +99,7 @@ const RecommendedDestinations = ({ navigation }) => {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Recommended For You</Text>
+      <Text style={styles.sectionTitle}>Popular Trips</Text>
       
       {recommendedTrips.map((trip) => (
         <TouchableOpacity 

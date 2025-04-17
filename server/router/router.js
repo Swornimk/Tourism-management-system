@@ -4,6 +4,7 @@ const userController = require('../controller/userController');
 const multer = require('multer');
 const path = require('path');
 const tripController = require("../controller/tripController");
+const bookingController = require("../controller/bookingController");
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -47,5 +48,16 @@ router.get("/trips/user", tripController.getUserTrips);
 router.get("/trips/all", tripController.getAllTrips);
 router.get("/trips/image/:imageName", tripController.getTripImage);
 router.patch("/trips/:id/status", tripController.updateTripStatus);
+
+// Booking routes
+router.post("/bookings", bookingController.createBooking);
+router.get("/bookings/user", bookingController.getUserBookings);
+router.get("/bookings/all", bookingController.getAllBookings);
+router.delete("/bookings/:bookingId", bookingController.cancelBooking);
+
+// Payment routes
+router.post("/payments/esewa/initialize", bookingController.initializeEsewaPayment);
+router.post("/payments/esewa/verify", bookingController.verifyEsewaPayment);
+router.post("/payments/esewa/update-booking", bookingController.updateEsewaBooking);
 
 module.exports = router;

@@ -12,12 +12,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "scheme": "tourismapp",
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos to let you choose a profile picture.",
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera to take profile pictures."
-      }
+      },
+      "bundleIdentifier": "com.tourism.travelapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,6 +30,21 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
+      ],
+      "package": "com.tourism.travelapp",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "tourismapp"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
       ]
     },
     "web": {

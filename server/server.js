@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require('cors');
 const router = require("./router/router");
 const openCollection = require("./database/databaseConnection");
+require('dotenv').config({ path: './config.env' });
 
 const app = express();
 
@@ -10,6 +11,30 @@ app.use(express.json());
 
 // Enable CORS
 app.use(cors());
+app.use('/api/payment', require('./router/paymentRoutes'));
+// Logging middleware for all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Request headers:', req.headers);
+  
+  if (req.method !== 'GET') {
+    console.log('Request body:', req.body);
+  }
+  
+  // Log response
+  const originalSend = res.send;
+  res.send = function(body) {
+    console.log(`[${new Date().toISOString()}] Response status: ${res.statusCode}`);
+    if (typeof body === 'string' && body.length < 1000) {
+      console.log('Response body:', body);
+    } else {
+      console.log('Response body: [content too large to display]');
+    }
+    originalSend.call(this, body);
+  };
+  
+  next();
+});
 
 // Mount the router to handle specific routes
 app.use("/", router);
@@ -23,11 +48,19 @@ openCollection(collectionName)
     collection.findOne({}).then(result => {
       console.log("Result from the database:", result);
     });
+    
+    // Also ensure we have access to the Booking collection
+    const Booking = require('./models/bookingModel');
+    console.log("Booking model loaded successfully");
   })
   .catch(error => {
     console.error("Error:", error);
   });
 
-app.listen(8000, () => {
-  console.log("Server running on port 8000");
+// Set environment variables
+const PORT = process.env.PORT || 8000;
+console.log(`FRONTEND_URL: ${process.env.FRONTEND_URL || 'Not set, using default'}`);
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

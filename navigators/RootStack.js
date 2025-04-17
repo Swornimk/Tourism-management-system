@@ -13,6 +13,12 @@ import Signup from './../screens/Signup';
 import HomeNavigator from './../screens/Home';
 import AdminDashboard from './../screens/Adminpanel';
 import AdminTripManagement from './../screens/AdminTripManagement';
+import PaymentSuccess from './../screens/PaymentSuccess';
+import PaymentFailure from './../screens/PaymentFailure';
+import EsewaPaymentScreen from './../screens/EsewaPaymentScreen';
+import MyBookings from './../screens/MyBookings';
+import AdminBookings from './../screens/AdminBookings';
+import { TripApproval } from './../screens/TripComponents';
 import axios from 'axios';
 
 const API_URL = 'http://10.0.2.2:8000';
@@ -112,6 +118,36 @@ const RootStack = () => {
       <Stack.Screen 
         name="AdminTripManagement" 
         component={AdminTripManagement}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="TripApproval" 
+        component={TripApproval}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="PaymentSuccess" 
+        component={PaymentSuccess}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="PaymentFailure" 
+        component={PaymentFailure}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="EsewaPayment" 
+        component={EsewaPaymentScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="MyBookings" 
+        component={MyBookings}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="AdminBookings" 
+        component={AdminBookings}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

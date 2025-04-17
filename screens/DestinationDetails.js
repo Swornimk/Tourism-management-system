@@ -9,11 +9,13 @@ import {
   Dimensions,
   StatusBar,
   Share,
-  Alert
+  Alert,
+  Modal
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import BookingForm from '../components/BookingForm';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +23,7 @@ const DestinationDetails = ({ route, navigation }) => {
   const { destination } = route.params;
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showBookingForm, setShowBookingForm] = useState(false);
   
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -60,18 +63,8 @@ const DestinationDetails = ({ route, navigation }) => {
   };
 
   const handleBookNow = () => {
-    // Navigate to booking screen or show booking form
-    Alert.alert(
-      'Booking Confirmation',
-      `Would you like to book the ${destination.title} package?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Proceed', 
-          onPress: () => Alert.alert('Success', 'Booking information has been sent to your email!') 
-        },
-      ]
-    );
+    // Show booking form modal
+    setShowBookingForm(true);
   };
 
   const renderTabContent = () => {
@@ -336,6 +329,22 @@ const DestinationDetails = ({ route, navigation }) => {
           <Text style={styles.bookButtonText}>Book Now</Text>
         </TouchableOpacity>
       </View>
+      
+      {/* Booking Form Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showBookingForm}
+        onRequestClose={() => setShowBookingForm(false)}
+      >
+        <View style={styles.modalContainer}>
+          <BookingForm 
+            trip={destination} 
+            onClose={() => setShowBookingForm(false)}
+            navigation={navigation}
+          />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -704,6 +713,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
 });
 

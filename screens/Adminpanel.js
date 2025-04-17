@@ -96,20 +96,28 @@ const AdminDashboard = ({ navigation }) => {
     checkAuthAndFetchData();
   }, [navigation]);
 
+  // Add a listener to refresh data when the screen is focused
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Always refresh data when screen comes into focus
+      console.log('AdminDashboard focused, refreshing data...');
+      fetchData(accessToken);
+    });
+
+    // Return the cleanup function to unsubscribe from the event
+    return unsubscribe;
+  }, [navigation, accessToken]);
+
   const fetchData = async (token) => {
     console.log('Starting fetchData...');
     setLoading(true);
     try {
-      // Use token passed from checkAuthAndFetchData or get from AsyncStorage
+      // Skip if no token is provided and none is available
       const authToken = token || await AsyncStorage.getItem('accessToken');
       
       if (!authToken) {
-        console.log('No access token for API requests, redirecting to login');
+        console.log('No token available, skipping fetch');
         setLoading(false);
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Login' }],
-        });
         return;
       }
       
@@ -223,14 +231,19 @@ const AdminDashboard = ({ navigation }) => {
         )
       );
 
-      // Refresh stats
-      const updatedPendingTrips = trips.filter(trip => 
-        trip._id === tripId ? newStatus === 'pending' : trip.status === 'pending'
+      // Get the updated trips array for correct counts
+      const updatedTrips = trips.map(trip =>
+        trip._id === tripId ? { ...trip, status: newStatus } : trip
       );
+      
+      // Recalculate stats
+      const pendingTrips = updatedTrips.filter(trip => trip.status === 'pending');
+      const approvedTrips = updatedTrips.filter(trip => trip.status === 'approved');
       
       setStats(prevStats => ({
         ...prevStats,
-        pendingApprovals: updatedPendingTrips.length
+        activeListings: approvedTrips.length,
+        pendingApprovals: pendingTrips.length
       }));
 
       Alert.alert('Success', `Trip ${newStatus} successfully`);
@@ -297,12 +310,14 @@ const AdminDashboard = ({ navigation }) => {
         )
       );
 
+      // Update stats if needed (not needed for user status changes as total users remains the same)
+      
       Alert.alert(
         'Success', 
         `User ${isActive ? 'activated' : 'deactivated'} successfully`
       );
     } catch (error) {
-      console.error('Error updating user status on server:', error);
+      console.error('Error updating user status:', error);
       Alert.alert('Error', 'Failed to update user status');
     }
   };
@@ -337,70 +352,106 @@ const AdminDashboard = ({ navigation }) => {
     );
   };
 
+  const handleViewTripDetails = (trip) => {
+    console.log('Navigating to TripApproval with trip:', trip._id);
+    
+    // Check if navigation is available
+    if (!navigation) {
+      console.error('Navigation object is undefined');
+      Alert.alert('Error', 'Navigation not available. Please try again.');
+      return;
+    }
+    
+    // Make sure trip data is valid
+    if (!trip || !trip._id) {
+      console.error('Invalid trip data:', trip);
+      Alert.alert('Error', 'Invalid trip data. Please try again.');
+      return;
+    }
+    
+    // Navigate to the TripApproval screen with trip data
+    try {
+      navigation.navigate('TripApproval', { 
+        trip: trip,
+        from: 'AdminDashboard'
+      });
+    } catch (error) {
+      console.error('Navigation error:', error);
+      Alert.alert('Error', 'Failed to open trip details. Please try again.');
+    }
+  };
+
   const renderTrip = (trip) => {
     const getStatusColor = (status) => {
-      switch (status) {
-        case 'pending': return '#FFA500';
-        case 'approved': return '#4CAF50';
-        case 'rejected': return '#F44336';
-        default: return '#888';
-      }
+      if (status === 'approved') return '#2ecc71';
+      if (status === 'rejected') return '#e74c3c';
+      return '#f1c40f'; // pending
     };
 
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{trip.title}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(trip.status) }]}>
+          <Text style={styles.tripTitle}>{trip.title}</Text>
+          <View style={[
+            styles.statusBadge, 
+            { backgroundColor: getStatusColor(trip.status) }
+          ]}>
             <Text style={styles.statusText}>{trip.status}</Text>
           </View>
         </View>
         
-        <View style={styles.userInfo}>
-          <Image
-            source={
-              trip.userProfilePicture && accessToken
-                ? { 
-                    uri: trip.userProfilePicture,
-                    headers: { 'Authorization': `Bearer ${accessToken}` } 
-                  }
-                : require('./../assets/img/default-avatar.jpg')
-            }
-            style={styles.avatar}
+        {trip.tripImageUrl && (
+          <Image 
+            source={{ uri: trip.tripImageUrl }} 
+            style={styles.tripImage}
+            resizeMode="cover"
           />
-          <View>
-            <Text style={styles.userName}>{trip.userName}</Text>
-            <Text style={styles.location}>
-              <Icon name="location-on" size={14} color="#888" /> {trip.location}
+        )}
+        
+        <View style={styles.cardContent}>
+          <View style={styles.infoRow}>
+            <Icon name="location-on" size={16} color="#666" />
+            <Text style={styles.infoText}>{trip.location || 'No location'}</Text>
+          </View>
+          
+          <View style={styles.infoRow}>
+            <Icon name="date-range" size={16} color="#666" />
+            <Text style={styles.infoText}>
+              {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}
             </Text>
           </View>
-        </View>
-        
-        <Text style={styles.description} numberOfLines={2}>{trip.description}</Text>
-        
-        <View style={styles.tripMeta}>
-          <Text style={styles.price}>${trip.price}</Text>
-          <Text style={styles.dates}>
-            {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}
-          </Text>
-        </View>
-        
-        {trip.status === 'pending' && (
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.approveButton]}
-              onPress={() => handleUpdateTripStatus(trip._id, 'approved')}
-            >
-              <Text style={styles.actionButtonText}>Approve</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.rejectButton]}
-              onPress={() => handleUpdateTripStatus(trip._id, 'rejected')}
-            >
-              <Text style={styles.actionButtonText}>Reject</Text>
-            </TouchableOpacity>
+          
+          <View style={styles.infoRow}>
+            <Icon name="attach-money" size={16} color="#666" />
+            <Text style={styles.infoText}>Rs{trip.price}</Text>
           </View>
-        )}
+        </View>
+        
+        <View style={styles.cardActions}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.viewButton]}
+            onPress={() => handleViewTripDetails(trip)}
+          >
+            <Text style={styles.actionButtonText}>View Details</Text>
+          </TouchableOpacity>
+          
+          {trip.status === 'pending' && (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.approveButton]}
+                onPress={() => handleUpdateTripStatus(trip._id, 'approved')}
+              >
+                <Text style={styles.actionButtonText}>Approve</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.rejectButton]}
+                onPress={() => handleUpdateTripStatus(trip._id, 'rejected')}
+              >
+                <Text style={styles.actionButtonText}>Reject</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
     );
   };
@@ -724,7 +775,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  cardTitle: {
+  tripTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
@@ -740,6 +791,52 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textTransform: 'capitalize',
   },
+  tripImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  cardContent: {
+    marginBottom: 10,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  actionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    marginLeft: 5,
+  },
+  viewButton: {
+    backgroundColor: '#3498db',
+  },
+  approveButton: {
+    backgroundColor: '#2ecc71',
+  },
+  rejectButton: {
+    backgroundColor: '#e74c3c',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -750,55 +847,6 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 10,
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-  },
-  location: {
-    fontSize: 12,
-    color: '#888',
-  },
-  description: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 10,
-  },
-  tripMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  dates: {
-    fontSize: 12,
-    color: '#888',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 5,
-    marginHorizontal: 5,
-  },
-  approveButton: {
-    backgroundColor: '#4CAF50',
-  },
-  rejectButton: {
-    backgroundColor: '#F44336',
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
   },
   userDetails: {
     flex: 1,

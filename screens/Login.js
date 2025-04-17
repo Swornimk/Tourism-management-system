@@ -118,11 +118,18 @@ const Login = ({ navigation }) => {
         throw new Error('Invalid token data received');
       }
       
-      await AsyncStorage.multiSet([
+      const itemsToStore = [
         ['accessToken', authData.accessToken],
         ['refreshToken', authData.refreshToken],
         ['isAdmin', authData.isAdmin ? 'true' : 'false']
-      ]);
+      ];
+      
+      // Store userId if available
+      if (authData.userId) {
+        itemsToStore.push(['userId', authData.userId.toString()]);
+      }
+      
+      await AsyncStorage.multiSet(itemsToStore);
       console.log('Auth tokens stored successfully');
       console.log('Is admin?', authData.isAdmin ? 'Yes' : 'No');
       return true;

@@ -42,6 +42,9 @@ import RecommendedDestinations from '../components/RecommendedDestinations';
 import AllDestinations from './AllDestinations';
 import DestinationDetails from './DestinationDetails';
 
+// Import DateTimePicker at the top with other imports
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 const API_URL = 'http://10.0.2.2:8000';
 
 // Home Screen Component
@@ -49,8 +52,6 @@ const Home = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [userName, setUserName] = useState('Traveller');
-
-  const categories = ['All', 'Popular', 'Adventure', 'Beach', 'Mountain'];
 
   // Fetch user name when component mounts
   useEffect(() => {
@@ -94,50 +95,22 @@ const Home = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Icon name="search" size={24} color="#888" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search destinations..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#888"
-        />
-      </View>
 
-      {/* Categories */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-      >
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category}
-            style={[
-              styles.categoryButton,
-              activeCategory === category && styles.activeCategoryButton
-            ]}
-            onPress={() => setActiveCategory(category)}
-          >
-            <Text 
-              style={[
-                styles.categoryText,
-                activeCategory === category && styles.activeCategoryText
-              ]}
-            >
-              {category}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
 
       {/* Featured Destinations - Using the new component */}
       <FeaturedDestinations navigation={navigation} />
 
       {/* Recommended For You - Using the new component */}
       <RecommendedDestinations navigation={navigation} />
+
+      {/* Menu Item for My Bookings */}
+      <TouchableOpacity
+        style={styles.menuItem}
+        onPress={() => navigation.navigate('MyBookings')}
+      >
+        <Icon name="book-online" size={24} color="#3498db" />
+        <Text style={styles.menuItemText}>My Bookings</Text>
+      </TouchableOpacity>
       
     </ScrollView>
   );
@@ -413,6 +386,13 @@ const Profile = ({ navigation }) => {
   const [authToken, setAuthToken] = useState(null);
   const [profileImageKey, setProfileImageKey] = useState(Date.now());
   const [tripFormVisible, setTripFormVisible] = useState(false);
+  
+  // Add date picker states
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  
   const [tripData, setTripData] = useState({
     title: '',
     location: '',
@@ -772,6 +752,22 @@ const Profile = ({ navigation }) => {
     }
   };
 
+  // Handle start date change
+  const handleStartDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || startDate;
+    setShowStartDatePicker(Platform.OS === 'ios');
+    setStartDate(currentDate);
+    setTripData({ ...tripData, startDate: currentDate.toISOString().split('T')[0] });
+  };
+
+  // Handle end date change
+  const handleEndDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || endDate;
+    setShowEndDatePicker(Platform.OS === 'ios');
+    setEndDate(currentDate);
+    setTripData({ ...tripData, endDate: currentDate.toISOString().split('T')[0] });
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -781,7 +777,7 @@ const Profile = ({ navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.profileContainer}>
+    <ScrollView style={styles.profileContainer} contentContainerStyle={styles.profileScrollContent}>
       <StatusBar style="light" />
       
       {/* Profile Header */}
@@ -999,22 +995,42 @@ const Profile = ({ navigation }) => {
             <View style={styles.dateContainer}>
               <View style={styles.dateInput}>
                 <Text style={styles.label}>Start Date</Text>
-                <TextInput
-                  style={styles.input}
-                  value={tripData.startDate}
-                  onChangeText={(text) => setTripData({...tripData, startDate: text})}
-                  placeholder="YYYY-MM-DD"
-                />
+                <TouchableOpacity onPress={() => setShowStartDatePicker(true)}>
+                  <TextInput
+                    style={styles.input}
+                    value={tripData.startDate}
+                    placeholder="YYYY-MM-DD"
+                    editable={false}
+                  />
+                </TouchableOpacity>
+                {showStartDatePicker && (
+                  <DateTimePicker
+                    value={startDate}
+                    mode="date"
+                    display="default"
+                    onChange={handleStartDateChange}
+                  />
+                )}
               </View>
 
               <View style={styles.dateInput}>
                 <Text style={styles.label}>End Date</Text>
-                <TextInput
-                  style={styles.input}
-                  value={tripData.endDate}
-                  onChangeText={(text) => setTripData({...tripData, endDate: text})}
-                  placeholder="YYYY-MM-DD"
-                />
+                <TouchableOpacity onPress={() => setShowEndDatePicker(true)}>
+                  <TextInput
+                    style={styles.input}
+                    value={tripData.endDate}
+                    placeholder="YYYY-MM-DD"
+                    editable={false}
+                  />
+                </TouchableOpacity>
+                {showEndDatePicker && (
+                  <DateTimePicker
+                    value={endDate}
+                    mode="date"
+                    display="default"
+                    onChange={handleEndDateChange}
+                  />
+                )}
               </View>
             </View>
 
@@ -1094,16 +1110,21 @@ const Profile = ({ navigation }) => {
                 <Text style={styles.buttonText}>Edit Profile</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={[styles.button, styles.logoutButton]}
-                onPress={handleLogout}
-              >
-                <Text style={styles.buttonText}>Log Out</Text>
-              </TouchableOpacity>
+
             </>
           )}
         </View>
       </View>
+
+      {/* Floating My Bookings Button */}
+      <TouchableOpacity
+        style={styles.floatingBookingsButton}
+        onPress={() => navigation.navigate('MyBookings')}
+      >
+        <Icon name="book-online" size={24} color="#fff" />
+        <Text style={styles.floatingButtonText}>My Bookings</Text>
+      </TouchableOpacity>
+      <View style={styles.floatingButtonSpacer} />
     </ScrollView>
   );
 };
@@ -1123,9 +1144,7 @@ const Location = () => (
         <StyledFormArea>
           <Avatar resizeMode="cover" source={require('./../assets/img/logo.jpg')} />
           <Line />
-          <StyledButton onPress={() => {navigation.navigate('Login')}}>
-            <ButtonText>Logout</ButtonText>
-          </StyledButton>
+
         </StyledFormArea>
       </WelcomeContainer>
     </InnerContainer>
@@ -1652,6 +1671,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  profileScrollContent: {
+    paddingBottom: 80, // Add padding to prevent overlap with floating button
+  },
   profileHeader: {
     backgroundColor: '#3498db',
     padding: 20,
@@ -2118,6 +2140,33 @@ const styles = StyleSheet.create({
   tabBarLabel: {
     fontSize: 12,
     marginTop: 2,
+  },
+  floatingBookingsButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    left: 20,
+    backgroundColor: '#3498db',
+    borderRadius: 30,
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  floatingButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  floatingButtonSpacer: {
+    height: 60, // Space for the floating button
   },
 });
 

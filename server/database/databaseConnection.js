@@ -21,4 +21,4 @@ function openCollection(collectionName) {
     return clientPromise.then(client => client.db("tourism").collection(collectionName));
 }
 
-module.exports = openCollection;
+module.exports = openCollection;    
