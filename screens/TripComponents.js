@@ -16,7 +16,7 @@ import notificationService from '../config/notificationService';
 import { useTrips } from '../contexts/TripContext';
 import { useNotifications } from '../contexts/NotificationContext';
 
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 // TripDetails Screen Component for normal users
 export const TripDetails = ({ route, navigation }) => {

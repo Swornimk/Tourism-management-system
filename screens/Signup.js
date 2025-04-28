@@ -40,7 +40,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import KeyboardAvoidingWrapper from './../components/KeyboardAvoidingWrapper';
 
 // API URL - replace with your IP address for testing on real device
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 const Signup = ({ navigation }) => {
   const [hidePassword, setHidePassword] = useState(true);

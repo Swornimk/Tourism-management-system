@@ -10,7 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 const { primary } = Colors;
 
 // API endpoint
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 /**
  * Google Sign-In Button using Clerk

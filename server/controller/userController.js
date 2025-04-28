@@ -184,7 +184,7 @@ async function getAllUsers(req, res) {
       // Create a proper profile picture URL if one exists
       if (user.profilePicture) {
         // Use correct URL structure that works with our router configuration
-        user.profilePictureUrl = `${process.env.API_URL || 'https://tourism-tfph.onrender.com'}/profile/picture?userId=${user._id}&token=${Date.now()}`;
+        user.profilePictureUrl = `${process.env.API_URL || 'https://tourism-management-system-wdu4.onrender.com'}/profile/picture?userId=${user._id}&token=${Date.now()}`;
       }
       
       // Don't send password to client

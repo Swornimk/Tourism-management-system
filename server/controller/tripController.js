@@ -10,7 +10,7 @@ const jwt = require('jsonwebtoken');
 const notificationUtils = require('../utils/notifications');
 
 // Define API URL for building profile picture URL
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 // Configure multer for trip image storage
 const storage = multer.diskStorage({
