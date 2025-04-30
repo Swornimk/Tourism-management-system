@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 // API URL for backend communications
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional

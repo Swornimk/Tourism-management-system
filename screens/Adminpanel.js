@@ -20,7 +20,7 @@ import notificationService from '../config/notificationService';
 import { useTrips } from '../contexts/TripContext';
 import socketService from '../config/socketService';
 
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 const AdminDashboard = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('Analytics');

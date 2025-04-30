@@ -13,7 +13,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTrips } from '../contexts/TripContext';
 import socketService from '../config/socketService';
 
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 const RecommendedDestinations = ({ navigation }) => {
   const [loading, setLoading] = useState(true);

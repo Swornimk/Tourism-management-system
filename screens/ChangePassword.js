@@ -20,7 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import socketService from '../config/socketService';
 import { useAuth } from '../contexts/AuthContext';
 
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 // Ignore specific warnings or errors to prevent them from showing in the console
 // This helps prevent the red error box from appearing

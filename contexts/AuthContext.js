@@ -6,7 +6,7 @@ import axios from 'axios';
 import userSessionManager from '../config/userSessionManager';
 
 // API endpoint
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 // Create context
 export const AuthContext = createContext();

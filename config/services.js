@@ -10,7 +10,7 @@ export const setNavigationRef = (ref) => {
 };
 
 // API base URL
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 console.log('API URL configured as:', API_URL);
 

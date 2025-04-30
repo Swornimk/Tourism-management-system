@@ -2,7 +2,7 @@ import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // WebSocket server URL (same as API base URL)
-const WS_URL = 'https://tourism-tfph.onrender.com'; // Main socket server
+const WS_URL = 'https://tourism-management-system-wdu4.onrender.com'; // Main socket server
 const BACKUP_WS_URL = 'wss://tourism-tfph.onrender.com'; // Backup with explicit WSS protocol
 let CURRENT_URL = WS_URL;
 

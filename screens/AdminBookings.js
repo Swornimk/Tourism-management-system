@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import axios from 'axios';
 
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 const AdminBookings = () => {
   const [bookings, setBookings] = useState([]);

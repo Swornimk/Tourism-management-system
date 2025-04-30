@@ -23,7 +23,7 @@ import NotificationScreen from './../screens/NotificationScreen';
 import ChangePassword from './../screens/ChangePassword';
 import axios from 'axios';
 
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 const Stack = createStackNavigator();
 

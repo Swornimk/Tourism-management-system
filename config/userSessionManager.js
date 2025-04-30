@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import firebaseService from './firebaseService';
 
 // API URL for backend communications
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 /**
  * User Session Manager

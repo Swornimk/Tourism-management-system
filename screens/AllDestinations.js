@@ -15,7 +15,7 @@ import axios from 'axios';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { StatusBar } from 'expo-status-bar';
 
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 const { width } = Dimensions.get('window');
 
 const AllDestinations = ({ navigation }) => {

@@ -28,7 +28,7 @@ app.use('/api/payment', require('./router/paymentRoutes'));
 app.use('/clerk', clerkRoutes);
 
 // Connect to MongoDB
-const uri = "mongodb+srv://subarna:Subarna123@cluster0.yu7zxbt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = "mongodb+srv://swornimkc:Slayer@cluster0.mesfx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 async function connectToDatabase() {
   try {
     const client = await MongoClient.connect(uri, { useUnifiedTopology: true });

@@ -11,7 +11,7 @@ import * as WebBrowser from 'expo-web-browser';
 const { primary } = Colors;
 
 // API endpoint
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 // Ensure WebBrowser auth sessions are completed 
 WebBrowser.maybeCompleteAuthSession();

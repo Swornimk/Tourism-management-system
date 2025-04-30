@@ -58,7 +58,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 // First, find the import section at the top of the file and add this import
 import { useNotifications } from '../contexts/NotificationContext';
 
-const API_URL = 'https://tourism-tfph.onrender.com';
+const API_URL = 'https://tourism-management-system-wdu4.onrender.com';
 
 // Home Screen Component
 const Home = ({ navigation }) => {
