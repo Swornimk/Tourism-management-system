@@ -353,32 +353,39 @@ const AdminDashboard = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       console.log('Starting logout process...');
-      
-      // Clear all stored tokens and user data
-      await AsyncStorage.removeItem('accessToken');
-      await AsyncStorage.removeItem('userData');
-      await AsyncStorage.removeItem('userId');
-      await AsyncStorage.removeItem('isAdmin');
-      await AsyncStorage.removeItem('userName');
-      await AsyncStorage.removeItem('userEmail');
-      
-      // No need to deregister tokens anymore - removed Firebase
-      // console.log('Deregistering push tokens before logout...');
-      // await notificationService.deregisterTokenWithServer();
-      
-      // Close socket connection when logging out
-      socketService.disconnectSocket();
-      
-      // Navigate to Login screen with reset to prevent going back
+  
+      //  FIRST disconnect socket and prevent auto-reconnect
+      if (socketService && typeof socketService.disconnectSocket === 'function') {
+        // Add these if your socketService supports them
+        socketService.disableAutoReconnect?.(); // Critical!
+        socketService.removeAllListeners?.(); 
+        await socketService.disconnectSocket();
+      }
+  
+      //  Clear ALL AsyncStorage data atomically
+      await AsyncStorage.multiRemove([
+        'accessToken',
+        'userData',
+        'userId',
+        'isAdmin',
+        'userName',
+        'userEmail',
+        // Add any other keys you use
+      ]);
+  
+      //  Clear axios default headers 
+      delete axios.defaults.headers.common['Authorization'];
+  
+      // Navigate to Login WITHOUT waiting for potential async leaks
       navigation.reset({
         index: 0,
         routes: [{ name: 'Login' }],
       });
-      
+  
       console.log('Logout successful');
     } catch (error) {
       console.error('Error during logout:', error);
-      // Still try to navigate to login
+      // Force navigation even if cleanup fails
       navigation.reset({
         index: 0,
         routes: [{ name: 'Login' }],
