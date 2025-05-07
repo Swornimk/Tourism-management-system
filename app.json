@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Travellers",
@@ -66,7 +67,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification.png",
+          "icon": "./assets/notification-icon.png",
           "color": "#ffffff",
           "sounds": ["./assets/notification.wav"],
           "mode": "production"
@@ -74,7 +75,7 @@
       ]
     ],
     "notification": {
-      "icon": "./assets/notification.png",
+      "icon": "./assets/notification-icon.png",
       "color": "#ffffff",
       "androidMode": "default",
       "androidCollapsedTitle": "#{unread_notifications} new notifications",
