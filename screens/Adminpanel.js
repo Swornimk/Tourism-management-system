@@ -349,49 +349,97 @@ const AdminDashboard = ({ navigation }) => {
       Alert.alert('Error', 'Failed to update user status');
     }
   };
+let isLoggingOut = false;
 
-  const handleLogout = async () => {
-    try {
-      console.log('Starting logout process...');
-  
-      //  FIRST disconnect socket and prevent auto-reconnect
-      if (socketService && typeof socketService.disconnectSocket === 'function') {
-        // Add these if your socketService supports them
-        socketService.disableAutoReconnect?.(); // Critical!
-        socketService.removeAllListeners?.(); 
-        await socketService.disconnectSocket();
-      }
-  
-      //  Clear ALL AsyncStorage data atomically
-      await AsyncStorage.multiRemove([
-        'accessToken',
-        'userData',
-        'userId',
-        'isAdmin',
-        'userName',
-        'userEmail',
-        // Add any other keys you use
-      ]);
-  
-      //  Clear axios default headers 
-      delete axios.defaults.headers.common['Authorization'];
-  
-      // Navigate to Login WITHOUT waiting for potential async leaks
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
-  
-      console.log('Logout successful');
-    } catch (error) {
-      console.error('Error during logout:', error);
-      // Force navigation even if cleanup fails
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
+const handleLogout = async () => {
+  if (isLoggingOut) return;
+  isLoggingOut = true;
+
+  try {
+    console.log('Starting logout process...');
+
+    // Disconnect socket
+    if (socketService && typeof socketService.disconnectSocket === 'function') {
+      socketService.disableAutoReconnect?.();
+      socketService.removeAllListeners?.();
+      await socketService.disconnectSocket();
     }
-  };
+
+    // Clear storage
+    await AsyncStorage.multiRemove([
+      'accessToken',
+      'userData',
+      'userId',
+      'isAdmin',
+      'userName',
+      'userEmail',
+    ]);
+
+    // Clear axios auth header
+    delete axios.defaults.headers.common['Authorization'];
+
+    // Navigate to login
+    // navigation.reset({
+    //   index: 0,
+    //   routes: [{ name: 'Login' }],
+    // });
+    
+
+    console.log('Logout successful');
+ } catch (error) {
+    console.error('Error during logout:', error);
+
+    // Even if error, route to login
+    // navigation.reset({
+    //   index: 0,
+    //   routes: [{ name: 'Login' }],
+    // });
+  }
+};
+
+  // const handleLogout = async () => {
+  //   try {
+  //     console.log('Starting logout process...');
+  
+  //     //  FIRST disconnect socket and prevent auto-reconnect
+  //     if (socketService && typeof socketService.disconnectSocket === 'function') {
+  //       // Add these if your socketService supports them
+  //       socketService.disableAutoReconnect?.(); // Critical!
+  //       socketService.removeAllListeners?.(); 
+  //       await socketService.disconnectSocket();
+  //     }
+  
+  //     //  Clear ALL AsyncStorage data atomically
+  //     await AsyncStorage.multiRemove([
+  //       'accessToken',
+  //       'userData',
+  //       'userId',
+  //       'isAdmin',
+  //       'userName',
+  //       'userEmail',
+  //       // Add any other keys you use
+  //     ]);
+  
+  //     //  Clear axios default headers 
+  //     delete axios.defaults.headers.common['Authorization'];
+  
+  //     // Navigate to Login WITHOUT waiting for potential async leaks
+  //     navigation.reset({
+  //       index: 0,
+  //       routes: [{ name: 'Login' }],
+  //     });
+  
+  //     console.log('Logout successful');
+  //   } catch (error) {
+  //     console.error('Error during logout:', error);
+  //     // Force navigation even if cleanup fails
+  //     navigation.reset({
+  //       index: 0,
+  //       routes: [{ name: 'Login' }],
+  //     });
+  //   }
+   
+  // };
 
   const handleViewTripDetails = (trip) => {
     console.log('Navigating to TripApproval with trip:', trip._id);
@@ -426,7 +474,7 @@ const AdminDashboard = ({ navigation }) => {
     const getStatusColor = (status) => {
       if (status === 'approved') return '#2ecc71';
       if (status === 'rejected') return '#e74c3c';
-      return '#f1c40f'; // pending
+      if (status === 'pending')return '#f1c40f'; // pending
     };
 
     return (
