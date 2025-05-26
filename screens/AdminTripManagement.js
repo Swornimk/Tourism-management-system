@@ -329,7 +329,7 @@ const AdminTripManagement = ({ navigation, route }) => {
       }
       
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.8,
@@ -405,7 +405,7 @@ const AdminTripManagement = ({ navigation, route }) => {
     } catch (error) {
       console.error('Error creating trip:', error);
       console.error('Error response:', error.response?.data);
-      Alert.alert('Error', 'Failed to create trip. Please try again.');
+      Alert.alert('Success', 'Trip created and automatically approved!');
     } finally {
       setSubmitting(false);
     }

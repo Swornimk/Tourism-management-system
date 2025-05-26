@@ -132,39 +132,24 @@ export const TripProvider = ({ children }) => {
   }, []);
 
   // Fetch user's trips
-  const fetchUserTrips = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const token = await AsyncStorage.getItem('accessToken');
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
-      const response = await axios.get(`${API_URL}/trips/user`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const newTrips = response.data || [];
-
-      // Only update state and lastUpdated if the data has actually changed
-      const tripsChanged = JSON.stringify(newTrips) !== JSON.stringify(userTrips);
-      if (tripsChanged) {
-        setUserTrips(newTrips);
-        setLastUpdated(Date.now());
-      }
-
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching user trips:', error);
-      setError('Failed to load trips');
-      throw error;
-    } finally {
-      setIsLoading(false);
+  const fetchUserTrips = async () => {
+  try {
+    const token = await AsyncStorage.getItem('accessToken');
+    
+    if (!token) {
+      console.warn('[TripContext] No access token. Skipping fetchAllTrips.');
+      return; // ✅ EXIT QUIETLY
     }
-  }, [userTrips]);
+
+    const response = await axios.get(`${API_URL}/trips`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    setAllTrips(response.data.trips);
+  } catch (error) {
+    console.error('Error fetching all trips:', error);
+  }
+};
 
   // Update trip status
   const updateTripStatus = useCallback(async (tripId, newStatus) => {
